@@ -4,10 +4,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './src/services/supabaseClient';
 import LoginScreen from './src/Auth/LoginScreen';
 import RegisterScreen from './src/Auth/RegisterScreen';
-import HomeScreen from './src/Screens/HomeScreen';
 import LoadingScreen from './src/Auth/LoadingScreen';
 import { useScreenDimensions } from './src/hooks/useScreenDimensions';
 import { styles } from './src/styles/styles';
+import AppNavigator from './src/navgation/AppNavigator';
+import { NavigationContainer } from '@react-navigation/native';
+
+
 
 const App = () => {
   const [currentScreen, setCurrentScreen] = useState('login');
@@ -53,7 +56,11 @@ const App = () => {
   }
 
   if (user) {
-    return <HomeScreen user={user} onLogout={logout} screenData={screenData} />;
+    return (
+      <NavigationContainer>
+        <AppNavigator user={user} onLogout={logout} screenData={screenData} />
+      </NavigationContainer>
+    );
   }
 
   return (
