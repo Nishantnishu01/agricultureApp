@@ -116,7 +116,7 @@ export const styles = StyleSheet.create({
         fontSize: 20,
     },
     linkButton: {
-        marginTop: 20,
+        marginTop: 10,
         alignItems: 'center',
         padding: 10,
     },
@@ -124,6 +124,7 @@ export const styles = StyleSheet.create({
         color: '#007AFF',
         fontSize: 16,
         textAlign: 'center',
+
     },
     tabletLinkText: {
         fontSize: 18,
@@ -226,4 +227,9 @@ export const styles = StyleSheet.create({
         borderRadius: 12,
         minWidth: 250,
     },
+    text: {
+        textAlign: 'center',
+        marginTop: 8,
+        fontWeight: 600
+    }
 });

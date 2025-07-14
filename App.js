@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './src/services/supabaseClient';
 import LoginScreen from './src/Auth/LoginScreen';
 import RegisterScreen from './src/Auth/RegisterScreen';
-import HomeScreen from './src/Auth/HomeScreen';
+import HomeScreen from './src/Screens/HomeScreen';
 import LoadingScreen from './src/Auth/LoadingScreen';
 import { useScreenDimensions } from './src/hooks/useScreenDimensions';
 import { styles } from './src/styles/styles';
@@ -37,7 +37,6 @@ const App = () => {
       setLoading(false);
     }
   };
-
 
   const logout = async () => {
     try {

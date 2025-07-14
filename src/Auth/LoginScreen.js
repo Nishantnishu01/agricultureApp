@@ -2,134 +2,124 @@ import React, { useState } from 'react';
 import {
     View,
     Text,
+    TextInput,
     TouchableOpacity,
-    ScrollView,
+    StyleSheet,
     Alert,
 } from 'react-native';
-import { getUserData, storeUserData } from '../Utils/storege';
-import { styles } from '../styles/styles';
 import { supabase } from '../services/supabaseClient';
-import CustomInput from '../component/CustomInput';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import LoadingScreen from './LoadingScreen';
 
 const LoginScreen = ({ onNavigateToRegister, onLoginSuccess, screenData }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const isTablet = screenData.width > 768;
-    const isLandscape = screenData.width > screenData.height;
-
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Error', 'Please fill in all fields');
+            Alert.alert('Missing fields', 'Please enter both email and password.');
             return;
         }
 
-        setLoading(true);
         try {
+            setLoading(true);
+
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
             if (error) {
-                Alert.alert('Login Error', error.message);
+                Alert.alert('Login failed', error.message);
                 return;
             }
 
-            const userData = await getUserData();
-            if (userData) {
-                onLoginSuccess(userData);
-            } else {
-                const userObj = {
-                    id: data.user.id,
-                    email: data.user.email,
-                    name: '',
-                    mobile: '',
-                };
-                await storeUserData(userObj);
-                onLoginSuccess(userObj);
+            const user = data.user;
+            if (user) {
+                await AsyncStorage.setItem('userData', JSON.stringify(user));
+                onLoginSuccess(user);
             }
-        } catch (error) {
-            Alert.alert('Error', 'An unexpected error occurred');
+        } catch (err) {
+            console.error('Login error:', err);
+            Alert.alert('Unexpected error', 'Something went wrong. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
+    if (loading) return <LoadingScreen />;
+
     return (
-        <ScrollView
-            contentContainerStyle={[
-                styles.screenContainer,
-                isTablet && styles.tabletScreenContainer,
-                isLandscape && styles.landscapeScreenContainer
-            ]}
-            showsVerticalScrollIndicator={false}
-        >
-            <View style={[
-                styles.formContainer,
-                isTablet && styles.tabletFormContainer,
-                isLandscape && styles.landscapeFormContainer
-            ]}>
-                <Text style={[
-                    styles.title,
-                    isTablet && styles.tabletTitle
-                ]}>Login</Text>
+        <View style={[styles.container, { paddingTop: screenData?.height * 0.1 || 40 }]}>
+            <Text style={styles.title}>Login</Text>
 
-                <CustomInput
-                    style={[
-                        styles.input,
-                        isTablet && styles.tabletInput
-                    ]}
-                    placeholder="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                />
+            <TextInput
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                style={styles.input}
+                autoCapitalize="none"
+                keyboardType="email-address"
+            />
 
-                <CustomInput
-                    style={[
-                        styles.input,
-                        isTablet && styles.tabletInput
-                    ]}
-                    placeholder="Password"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                />
+            <TextInput
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                style={styles.input}
+                secureTextEntry
+            />
 
-                <TouchableOpacity
-                    style={[
-                        styles.button,
-                        loading && styles.buttonDisabled,
-                        isTablet && styles.tabletButton
-                    ]}
-                    onPress={handleLogin}
-                    disabled={loading}
-                >
-                    <Text style={[
-                        styles.buttonText,
-                        isTablet && styles.tabletButtonText
-                    ]}>
-                        {loading ? 'Logging in...' : 'Login'}
-                    </Text>
-                </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={handleLogin}>
+                <Text style={styles.buttonText}>Login</Text>
+            </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={styles.linkButton}
-                    onPress={onNavigateToRegister}
-                >
-                    <Text style={[
-                        styles.linkText,
-                        isTablet && styles.tabletLinkText
-                    ]}>
-                        Don't have an account? Register here
-                    </Text>
-                </TouchableOpacity>
-            </View>
-        </ScrollView>
+            <TouchableOpacity onPress={onNavigateToRegister}>
+                <Text style={styles.link}>Don't have an account? Register</Text>
+            </TouchableOpacity>
+        </View>
     );
 };
 
 export default LoginScreen;
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        paddingHorizontal: 32,
+        justifyContent: 'center',
+        backgroundColor: '#f9f9f9',
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginBottom: 24,
+        textAlign: 'center',
+        color: '#333',
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#aaa',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 16,
+        backgroundColor: '#fff',
+    },
+    button: {
+        backgroundColor: '#351401',
+        padding: 15,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    buttonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+    },
+    link: {
+        color: '#007bff',
+        textAlign: 'center',
+        marginTop: 12,
+    },
+});

@@ -2,187 +2,181 @@ import React, { useState } from 'react';
 import {
     View,
     Text,
+    TextInput,
     TouchableOpacity,
-    ScrollView,
+    StyleSheet,
     Alert,
 } from 'react-native';
-
 import { supabase } from '../services/supabaseClient';
-import { storeUserData } from '../src/Utils/storege';
-import { styles } from '../styles/styles';
-import CustomInput from '../component/CustomInput';
-import CustomButton from '../component/CustomButton';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import LoadingScreen from './LoadingScreen';
 
-const RegisterScreen = ({ onNavigateToLogin, onRegisterSuccess, screenData }) => {
+const RegisterScreen = ({ onNavigateToLogin, screenData }) => {
     const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
     const [mobile, setMobile] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const isTablet = screenData.width > 768;
-    const isLandscape = screenData.width > screenData.height;
-
     const handleRegister = async () => {
-        if (!name || !email || !mobile || !password || !confirmPassword) {
-            Alert.alert('Error', 'Please fill in all fields');
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            Alert.alert('Error', 'Passwords do not match');
+        if (!name || !mobile || !email || !password || !confirmPassword) {
+            Alert.alert('Missing fields', 'Please fill in all fields.');
             return;
         }
 
         if (password.length < 6) {
-            Alert.alert('Error', 'Password must be at least 6 characters long');
+            Alert.alert('Weak password', 'Password must be at least 6 characters.');
             return;
         }
 
-        setLoading(true);
+        if (password !== confirmPassword) {
+            Alert.alert('Mismatch', 'Passwords do not match.');
+            return;
+        }
+
         try {
-            console.log('🔍 Starting registration...');
-            console.log('Email:', email);
-            console.log('Password length:', password.length);
+            setLoading(true);
 
-            // Test if supabase client is working
-            if (!supabase) {
-                throw new Error('Supabase client not initialized');
-            }
-
-            console.log('📡 Calling supabase.auth.signUp...');
             const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
+                options: {
+                    data: {
+                        name,
+                        mobile,
+                    },
+                },
             });
 
-            console.log('📨 Supabase response received');
-            console.log('Data:', data);
-            console.log('Error:', error);
-
             if (error) {
-                console.log('❌ Registration error:', error.message);
-                Alert.alert('Registration Error', error.message);
+                Alert.alert('Registration failed', error.message);
                 return;
             }
 
-            if (!data || !data.user) {
+            const { user } = data;
+
+            if (user) {
+                await AsyncStorage.setItem('userData', JSON.stringify(user));
+
                 Alert.alert(
-                    'Registration Success',
-                    'Check your email for verification. User will be active after verification.'
+                    'Registration Complete',
+                    'Successfully registered. A verification email has been sent.'
                 );
-                return;
+
+                // Optionally go to login screen
+                onNavigateToLogin();
+
+                // Clear fields
+                setName('');
+                setEmail('');
+                setMobile('');
+                setPassword('');
+                setConfirmPassword('');
             }
-
-            console.log('✅ Registration successful, storing user data...');
-
-            const userData = {
-                id: data.user.id,
-                name,
-                mobile,
-            };
-
-            await storeUserData(userData);
-
-            console.log('✅ User data stored successfully');
-
-            Alert.alert('Success', 'Account created successfully!',);
-        } catch (error) {
-            console.error('❌ Unexpected error in registration:');
-            console.error('Message:', error.message);
-            console.error('Stack:', error.stack);
-            console.error('Full error object:', error);
-
-            Alert.alert('Error', 'Registration failed: ' + error.message);
+        } catch (err) {
+            console.error('Registration error:', err);
+            Alert.alert('Unexpected error', 'Something went wrong. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
+    if (loading) return <LoadingScreen />;
+
     return (
-        <ScrollView
-            contentContainerStyle={[
-                styles.screenContainer,
-                isTablet && styles.tabletScreenContainer,
-                isLandscape && styles.landscapeScreenContainer
-            ]}
-            showsVerticalScrollIndicator={false}
-        >
-            <View style={[
-                styles.formContainer,
-                isTablet && styles.tabletFormContainer,
-                isLandscape && styles.landscapeFormContainer
-            ]}>
-                <Text style={[
-                    styles.title,
-                    isTablet && styles.tabletTitle
-                ]}>Create Account</Text>
+        <View style={[styles.container, { paddingTop: screenData?.height * 0.1 || 40 }]}>
+            <Text style={styles.title}>Register</Text>
 
-                <View style={[
-                    isTablet && isLandscape && styles.landscapeInputRow
-                ]}>
-                    <CustomInput
-                        placeholder="Full Name"
-                        value={name}
-                        onChangeText={setName}
-                        style={[styles.input, isTablet && styles.tabletInput, isTablet && isLandscape && styles.landscapeInput]}
-                    />
+            <TextInput
+                placeholder="Full Name"
+                value={name}
+                onChangeText={setName}
+                style={styles.input}
+            />
 
-                    <CustomInput
-                        placeholder="Email"
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        style={[styles.input, isTablet && styles.tabletInput, isTablet && isLandscape && styles.landscapeInput]}
-                    />
+            <TextInput
+                placeholder="Mobile Number"
+                value={mobile}
+                onChangeText={setMobile}
+                style={styles.input}
+                keyboardType="phone-pad"
+            />
 
-                    <CustomInput
-                        placeholder="Mobile Number"
-                        value={mobile}
-                        onChangeText={setMobile}
-                        keyboardType="phone-pad"
-                        style={[styles.input, isTablet && styles.tabletInput, isTablet && isLandscape && styles.landscapeInput]}
-                    />
+            <TextInput
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                style={styles.input}
+                autoCapitalize="none"
+                keyboardType="email-address"
+            />
 
-                    <CustomInput
-                        placeholder="Password"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                        style={[styles.input, isTablet && styles.tabletInput, isTablet && isLandscape && styles.landscapeInput]}
-                    />
+            <TextInput
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                style={styles.input}
+                secureTextEntry
+            />
 
-                    <CustomInput
-                        placeholder="Confirm Password"
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        secureTextEntry={false}
-                        style={[styles.input, isTablet && styles.tabletInput, isTablet && isLandscape && styles.landscapeInput]}
-                    />
-                </View>
-                <CustomButton
-                    onPress={handleRegister}
-                    title="Login"
-                    loading={loading}
-                    style={[isTablet && styles.tabletButton]}
-                    textStyle={[isTablet && styles.tabletButtonText]}
-                />
+            <TextInput
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                style={styles.input}
+                secureTextEntry
+            />
 
-                <TouchableOpacity
-                    style={styles.linkButton}
-                    onPress={onNavigateToLogin}
-                >
-                    <Text style={[
-                        styles.linkText,
-                        isTablet && styles.tabletLinkText
-                    ]}>
-                        Already have an account? Login here
-                    </Text>
-                </TouchableOpacity>
-            </View>
-        </ScrollView>
+            <TouchableOpacity style={styles.button} onPress={handleRegister}>
+                <Text style={styles.buttonText}>Register</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={onNavigateToLogin}>
+                <Text style={styles.link}>Already have an account? Login</Text>
+            </TouchableOpacity>
+        </View>
     );
 };
 
 export default RegisterScreen;
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        paddingHorizontal: 32,
+        justifyContent: 'center',
+        backgroundColor: '#f9f9f9',
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginBottom: 24,
+        textAlign: 'center',
+        color: '#333',
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#aaa',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 12,
+        backgroundColor: '#fff',
+    },
+    button: {
+        backgroundColor: '#351401',
+        padding: 15,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    buttonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+    },
+    link: {
+        color: '#007bff',
+        textAlign: 'center',
+        marginTop: 12,
+    },
+});
